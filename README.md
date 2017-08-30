@@ -16,6 +16,4 @@ Blender has a skin modifier that does great things for a lot of meshes. It doesn
 
 This script is meant to address this for me. It certainly isn't a general purpose skinning script, and doesn't pretend to be -- it will likely fail if your input mesh doesn't match a use case similar to mine. I hope the script is useful to you, but really the Blender skin modifier should be more than adequate for most purposes.
 
-## An important note
-
-Please note that this script is in development and currently doesn't do much. I am mostly testing some ideas about how I want my skin meshes created.
+Play around with the demo blend file before adapting the script (imported as a module) into your project.

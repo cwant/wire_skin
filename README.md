@@ -17,3 +17,13 @@ Blender has a skin modifier that does great things for a lot of meshes. It doesn
 This script is meant to address this for me. It certainly isn't a general purpose skinning script, and doesn't pretend to be -- it will likely fail if your input mesh doesn't match a use case similar to mine. I hope the script is useful to you, but really the Blender skin modifier should be more than adequate for most purposes.
 
 Play around with the demo blend file before adapting the script (imported as a module) into your project.
+
+## That's great Chris, but how does it work?
+
+We break the problem down into two parts: calculating "VertCaps" for each vertex in the input mesh, and joining the VertCaps using profile connectors.
+
+![Screenshot](documentation/wire_skin_demo2.png?raw=true "Screenshot")
+
+Each VertCap can be decomposed further. The vertices that are needed to make a VertCap can be divided between a couple of "poles" that stradle either side of the concavity of the vertex, and some profile shapes (at this stage of development, squares) that go around each edge connected to the vertex.
+
+![Screenshot](documentation/wire_skin_demo3.png?raw=true "Screenshot")

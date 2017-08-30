@@ -2,17 +2,6 @@ import bpy
 from math import sqrt, sin, cos, atan2, pi
 from mathutils import Matrix, Vector
 
-radius = 0.05
-dist = 0.1
-input_object = bpy.data.objects["Wire"]
-output_object = bpy.data.objects["WireSkin"]
-
-def main():
-  wire_skin = WireSkin(input_object.data, radius, dist)
-
-  me = wire_skin.compute()
-  output_object.data = me
-
 class VertCap:
   def __init__(self, v, radius, dist):
     self.input_vert = v
@@ -122,5 +111,3 @@ class WireSkin:
       polygons = []
       for i in range(2):
         polygons[i] = self.vert_cap[edge.vertex[i]].get_edge_polygon(edge)
-
-main()

@@ -24,6 +24,14 @@ We break the problem down into two parts: calculating "VertCaps" for each vertex
 
 ![Screenshot](documentation/wire_skin_demo2.png?raw=true "Screenshot")
 
-Each VertCap can be decomposed further. The vertices that are needed to make a VertCap can be divided between a couple of "poles" that stradle either side of the concavity of the vertex, and some profile shapes (at this stage of development, squares) that go around each edge connected to the vertex.
+Each VertCap can be decomposed further. The vertices that are needed to make a VertCap are comprised of a couple of "poles" that stradle either side of the concavity of the vertex, and some profile shapes (at this stage of development, squares) that go around each edge connected to the vertex.
 
 ![Screenshot](documentation/wire_skin_demo3.png?raw=true "Screenshot")
+
+Next, faces connect these vertices. These are broken into two groups: the faces (triangles) that connect the profiles to a pole, and strips of faces that run between the profiles that connect the pole (a triangle, a quad, and another triangle).
+
+![Screenshot](documentation/wire_skin_demo4.png?raw=true "Screenshot")
+
+At this point, the VertCap is complete.
+
+Quads connect the VertCaps together along edges, and this is pretty straight forward.

@@ -3,11 +3,29 @@ from math import sqrt, sin, cos, atan2, pi
 from mathutils import Matrix, Vector
 
 class VertCap:
-  def __init__(self, v, radius, dist):
+  def __init__(self, v, **kwargs):
     self.input_vert = Vector(v.co)
     self.input_edge_verts = []
-    self.radius = radius
-    self.dist = dist
+
+    if 'radius' in kwargs:
+      self.radius = kwargs['radius']
+    else:
+      self.radius = 0.1
+
+    if 'dist' in kwargs:
+      self.dist = kwargs['dist']
+    else:
+      self.dist = 0,25
+
+    if 'inside_radius' in kwargs:
+      self.inside_radius = kwargs['inside_radius']
+    else:
+      self.inside_radius = self.radius
+
+    if 'outside_radius' in kwargs:
+      self.outside_radius = kwargs['outside_radius']
+    else:
+      self.outside_radius = self.radius
 
     # two vert indices
     self.poles = []
@@ -51,10 +69,10 @@ class VertCap:
     if vave.magnitude > 0.0000001:
       vvec = self.input_vert - vave
       if vvec.magnitude > 0.0000001:
-        vvec = vvec.normalized() * self.radius
+        vvec = vvec.normalized()
         numverts = len(self.verts)
-        self.verts.append(self.input_vert + vvec)
-        self.verts.append(self.input_vert - vvec)
+        self.verts.append(self.input_vert + vvec * self.outside_radius)
+        self.verts.append(self.input_vert - vvec * self.inside_radius)
         self.poles += [numverts, numverts + 1]
 
   def reorder_edge_verts(self):
@@ -142,11 +160,11 @@ class VertCap:
                          next_profile[2], next_profile[1], ])
 
 class WireSkin:
-  def __init__(self, mesh, radius, dist):
-    self.radius = radius
-    self.dist = dist
-
+  def __init__(self, mesh, **kwargs):
     self.mesh = mesh
+
+    # Has radius, dist, etc.
+    self.kwargs = kwargs
 
     self.vert_caps = []
 
@@ -178,10 +196,11 @@ class WireSkin:
       vc1 = self.vert_caps[edge.vertices[1]]
       p0 = vc0.get_edge_profile(edge)
       p1 = vc1.get_edge_profile(edge)
-      faces.append([p0[0], p0[1], p1[0], p1[1]])
-      faces.append([p0[1], p0[2], p1[3], p1[0]])
-      faces.append([p0[2], p0[3], p1[2], p1[3]])
-      faces.append([p0[3], p0[0], p1[1], p1[2]])
+      for idx in range(4):
+        idx1 = (idx + 1) % 4
+        idx2 = (0 - idx) % 4
+        idx3 = (1 - idx) % 4
+        faces.append([p0[idx], p0[idx1], p1[idx2], p1[idx3]])
 
     me = bpy.data.meshes.new('wireskin')
     me.from_pydata(verts, [], faces)
@@ -189,7 +208,7 @@ class WireSkin:
 
   def calc_vert_caps(self):
     for vert in self.mesh.vertices:
-      self.vert_caps.append(VertCap(vert, self.radius, self.dist))
+      self.vert_caps.append(VertCap(vert, **self.kwargs))
 
     for edge in self.mesh.edges:
       for i in range(2):

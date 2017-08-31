@@ -35,3 +35,17 @@ Next, faces connect these vertices. These are broken into two groups: the faces 
 At this point, the VertCap is complete.
 
 Quads connect the VertCaps together along edges, and this is pretty straight forward.
+
+## Okay, but how do I control this thing?
+
+Well, take a look at the demo file. The `WireSkin` object generates a mesh when it's `compute()` method is called. The object is initialized with a mesh as input, and a number of keyword arguments:
+
+* `dist`: distance between each vertex in the input mesh and the profile vertices described above.
+* `radius`: the radius of the square profiles (does a square truly have a radius?)
+* `outside_radius`: the distance between a vertex in the base mesh and a outside pole vertex in a VertCap
+* `inside_radius`: the distance between a vertex in the base mesh and a inside pole vertex in a VertCap.
+
+A cryptic illustration should make this clear:
+
+![Screenshot](documentation/wire_skin_demo5.png?raw=true "Screenshot")
+

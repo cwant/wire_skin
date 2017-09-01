@@ -24,7 +24,7 @@ We break the problem down into two parts: calculating "VertCaps" for each vertex
 
 ![Screenshot](documentation/wire_skin_demo2.png?raw=true "Screenshot")
 
-Each VertCap can be decomposed further. The vertices that are needed to make a VertCap are comprised of a couple of "poles" that stradle either side of the concavity of the vertex, and some profile shapes (at this stage of development, squares) that go around each edge connected to the vertex.
+Each VertCap can be decomposed further. The vertices that are needed to make a VertCap are comprised of a couple of "poles" that stradle either side of the concavity of the vertex, and some profile shapes (at this stage of development, rectangles) that go around each edge connected to the vertex.
 
 ![Screenshot](documentation/wire_skin_demo3.png?raw=true "Screenshot")
 
@@ -41,11 +41,13 @@ Quads connect the VertCaps together along edges, and this is pretty straight for
 Well, take a look at the demo file. The `WireSkin` object generates a mesh when it's `compute()` method is called. The object is initialized with a mesh as input, and a number of keyword arguments:
 
 * `dist`: distance between each vertex in the input mesh and the profile vertices described above.
-* `radius`: the radius of the square profiles (does a square truly have a radius?)
+* `width`: the width of the rectangular profiles.
+* `height`: the height of the rectangular profiles.
 * `outside_radius`: the distance between a vertex in the base mesh and a outside pole vertex in a VertCap
 * `inside_radius`: the distance between a vertex in the base mesh and a inside pole vertex in a VertCap.
 
-A cryptic illustration should make this clear:
+A couple of cryptic illustrations should make this clear:
 
 ![Screenshot](documentation/wire_skin_demo5.png?raw=true "Screenshot")
+![Screenshot](documentation/wire_skin_demo6.png?raw=true "Screenshot")
 

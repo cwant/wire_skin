@@ -7,10 +7,15 @@ class VertCap:
     self.input_vert = Vector(v.co)
     self.input_edge_verts = []
 
-    if 'radius' in kwargs:
-      self.radius = kwargs['radius']
+    if 'width' in kwargs:
+      self.width_2 = kwargs['width'] / 2.0
     else:
-      self.radius = 0.1
+      self.width_2 = 0.1
+
+    if 'height' in kwargs:
+      self.height_2 = kwargs['height'] / 2.0
+    else:
+      self.height_2 = self.width_2
 
     if 'dist' in kwargs:
       self.dist = kwargs['dist']
@@ -109,7 +114,7 @@ class VertCap:
       self.create_profile_vert(edge_vert)
 
   def create_profile_vert(self, edge_vert):
-    # For now, squares
+    # For now, rectangles
 
     vert = edge_vert['v']
     # This vector points in the direction of the pole from the vert
@@ -130,8 +135,8 @@ class VertCap:
         vpole = etangent + Vector((1, 1, 0))
 
     # Normal to the pole and the tangent vector
-    ebinormal = vpole.cross(etangent).normalized() * self.radius
-    enormal = etangent.cross(ebinormal).normalized() * self.radius
+    ebinormal = vpole.cross(etangent).normalized() * self.width_2
+    enormal = etangent.cross(ebinormal).normalized() * self.height_2
 
     numverts = len(self.verts)
     self.verts += [

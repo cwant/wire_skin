@@ -68,14 +68,19 @@ class VertCap:
       vave = vave.normalized()
       numverts = len(self.verts)
       self.verts.append(self.input_vert - vave * self.outside_radius)
-      self.verts.append(self.input_vert + vave * self.inside_radius)
-      self.poles += [numverts, numverts + 1]
+      self.poles.append(numverts)
+      if len(self.input_edge_verts) > 1:
+        self.verts.append(self.input_vert + vave * self.inside_radius)
+        self.poles.append(numverts + 1)
 
   def reorder_edge_verts(self):
     # Treat the pole as the up vector, and project the edge verts
     # to the plane normal to the pole. Examine the projected verts in
     # polar coordinates with the first edge vert having theta = 0
     # (on x axis). Reorder the others by theta value
+    if len(self.input_edge_verts) < 2:
+      return
+
     to_z = (self.verts[self.poles[0]] - self.input_vert).normalized()
     vedge = self.input_edge_verts[0]['v'] - self.input_vert
     to_y = to_z.cross(vedge).normalized()
@@ -114,6 +119,16 @@ class VertCap:
     # The center of the profile, sitting on the edge
     ecenter = self.input_vert + (etangent * self.dist)
 
+    if len(self.input_edge_verts) < 2:
+      # When the vert cap only has one edge coming to it,
+      # then vpole and etangent are parallel, and cross products
+      # blow up. Total kludge, but lets fudge things a little
+      fudge = Vector((1, 0, 0))
+      if abs(abs(fudge * etangent) - etangent.magnitude) > 0.0001:
+        vpole = etangent + fudge
+      else:
+        vpole = etangent + Vector((1, 1, 0))
+
     # Normal to the pole and the tangent vector
     ebinormal = vpole.cross(etangent).normalized() * self.radius
     enormal = etangent.cross(ebinormal).normalized() * self.radius
@@ -137,10 +152,17 @@ class VertCap:
 
   def create_pole_faces(self):
     for profile in self.profiles:
-      self.faces.append([self.poles[0], profile[1], profile[0]])
-      self.faces.append([self.poles[1], profile[3], profile[2]])
+      if len(self.input_edge_verts) > 1:
+        self.faces.append([self.poles[1], profile[3], profile[2]])
+        self.faces.append([self.poles[0], profile[1], profile[0]])
+      else:
+        for i in range(4):
+          self.faces.append([self.poles[0], profile[(i+1) % 4], profile[i]])
 
   def create_inter_profile_faces(self):
+    if len(self.input_edge_verts) < 2:
+      return
+
     num_profiles = len(self.profiles)
     for i in range(num_profiles):
       this_i = i

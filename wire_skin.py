@@ -64,16 +64,12 @@ class VertCap:
       vert = ev['v']
       vave += (vert - self.input_vert).normalized()
 
-    vave *= (1.0/len(self.input_edge_verts))
-
     if vave.magnitude > 0.0000001:
-      vvec = self.input_vert - vave
-      if vvec.magnitude > 0.0000001:
-        vvec = vvec.normalized()
-        numverts = len(self.verts)
-        self.verts.append(self.input_vert + vvec * self.outside_radius)
-        self.verts.append(self.input_vert - vvec * self.inside_radius)
-        self.poles += [numverts, numverts + 1]
+      vave = vave.normalized()
+      numverts = len(self.verts)
+      self.verts.append(self.input_vert - vave * self.outside_radius)
+      self.verts.append(self.input_vert + vave * self.inside_radius)
+      self.poles += [numverts, numverts + 1]
 
   def reorder_edge_verts(self):
     # Treat the pole as the up vector, and project the edge verts

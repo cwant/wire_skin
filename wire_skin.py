@@ -188,19 +188,50 @@ class WireSkin:
 
     # Joining the vert caps ...
     for edge in self.mesh.edges:
-      vc0 = self.vert_caps[edge.vertices[0]]
-      vc1 = self.vert_caps[edge.vertices[1]]
-      p0 = vc0.get_edge_profile(edge)
-      p1 = vc1.get_edge_profile(edge)
-      for idx in range(4):
-        idx1 = (idx + 1) % 4
-        idx2 = (0 - idx) % 4
-        idx3 = (1 - idx) % 4
-        faces.append([p0[idx], p0[idx1], p1[idx2], p1[idx3]])
+      faces += self.make_vert_cap_connection(edge, verts)
 
     me = bpy.data.meshes.new('wireskin')
     me.from_pydata(verts, [], faces)
     return me
+
+  def make_vert_cap_connection(self, edge, verts):
+    # We have two profiles that need to be connected that are
+    # on other ends of an edge. Unfortunately the points in
+    # the profiles aren't ordered in a meaningful way that will
+    # help us create the faces. We need to figure out which
+    # vertices on the opposite profiles are closest to each other.
+    faces = []
+    vc0 = self.vert_caps[edge.vertices[0]]
+    vc1 = self.vert_caps[edge.vertices[1]]
+    p0 = vc0.get_edge_profile(edge)
+    p1 = vc1.get_edge_profile(edge)
+
+    v0 = verts[p0[0]]
+    lengths = [(v0 - verts[p]).magnitude for p in p1]
+    min_len = lengths[0]
+    min_i = 0
+    for i in range(1, len(lengths)):
+      if lengths[i] < min_len:
+        min_len = lengths[i]
+        min_i = i
+
+    v1 = verts[p0[1]]
+    len1 = (verts[p1[(min_i + 1) % 4]] - v1).magnitude
+    len2 = (verts[p1[(min_i - 1) % 4]] - v1).magnitude
+
+    mult = 1
+    if len1 < len2:
+      min_i2 = (min_i + 1) % 4
+    else:
+      min_i2 = (min_i - 1) % 4
+      mult = -1
+
+    for idx in range(4):
+      idx1 = (idx + 1) % 4
+      idx2 = (min_i2 + mult * idx) % 4
+      idx3 = (min_i + mult * idx) % 4
+      faces.append([p0[idx], p0[idx1], p1[idx2], p1[idx3]])
+    return faces
 
   def calc_vert_caps(self):
     for vert in self.mesh.vertices:

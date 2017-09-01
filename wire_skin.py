@@ -49,6 +49,9 @@ class VertCap:
     self.input_edge_verts.append(edge_vert)
 
   def compute_cap(self):
+    if len(self.input_edge_verts) == 0:
+      return
+
     self.create_pole_verts()
     self.reorder_edge_verts()
     self.create_profile_verts()
@@ -56,9 +59,6 @@ class VertCap:
     self.create_inter_profile_faces()
 
   def create_pole_verts(self):
-    if len(self.input_edge_verts) == 0:
-      return
-
     vave = Vector((0.0, 0.0, 0.0))
     for ev in self.input_edge_verts:
       vert = ev['v']

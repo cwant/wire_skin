@@ -1,10 +1,11 @@
-import bpy
+import bpy, bmesh
 from math import sqrt, sin, cos, atan2, pi
 from mathutils import Matrix, Vector
 
 class VertCap:
-  def __init__(self, v, **kwargs):
+  def __init__(self, v, bm, **kwargs):
     self.input_vert = Vector(v.co)
+    self.bm = bm
     self.input_edge_verts = []
 
     if 'width' in kwargs:
@@ -72,11 +73,12 @@ class VertCap:
     if vave.magnitude > 0.0000001:
       vave = vave.normalized()
       numverts = len(self.verts)
-      self.verts.append(self.input_vert - vave * self.outside_radius)
-      self.poles.append(numverts)
+      # Outside pole
+      v1 = self.bm.verts.new(self.input_vert - vave * self.outside_radius)
+      self.poles.append(v1)
       if len(self.input_edge_verts) > 1:
-        self.verts.append(self.input_vert + vave * self.inside_radius)
-        self.poles.append(numverts + 1)
+        v2 = self.bm.verts.new(self.input_vert + vave * self.inside_radius)
+        self.poles.append(v2)
 
   def reorder_edge_verts(self):
     # Treat the pole as the up vector, and project the edge verts
@@ -86,7 +88,7 @@ class VertCap:
     if len(self.input_edge_verts) < 2:
       return
 
-    to_z = (self.verts[self.poles[0]] - self.input_vert).normalized()
+    to_z = (Vector(self.poles[0].co) - self.input_vert).normalized()
     vedge = self.input_edge_verts[0]['v'] - self.input_vert
     to_y = to_z.cross(vedge).normalized()
     to_x = to_y.cross(to_z).normalized()
@@ -116,7 +118,7 @@ class VertCap:
   def create_profile(self, edge_vert):
     vert = edge_vert['v']
     # This vector points in the direction of the pole from the vert
-    vpole = self.verts[self.poles[0]] - self.input_vert
+    vpole = Vector(self.poles[0].co) - self.input_vert
     # This vector points down the edge
     etangent = (vert - self.input_vert).normalized()
     # The center of the profile, sitting on the edge
@@ -137,30 +139,28 @@ class VertCap:
     enormal = etangent.cross(ebinormal).normalized() * self.height_2
 
     numverts = len(self.verts)
-    self.verts += [
-      ecenter + enormal + ebinormal,
-      ecenter + enormal - ebinormal,
-      ecenter - enormal - ebinormal,
-      ecenter - enormal + ebinormal ]
+    v1 = self.bm.verts.new(ecenter + enormal + ebinormal)
+    v2 = self.bm.verts.new(ecenter + enormal - ebinormal)
+    v3 = self.bm.verts.new(ecenter - enormal - ebinormal)
+    v4 = self.bm.verts.new(ecenter - enormal + ebinormal)
 
-    profile = [numverts, numverts + 1, numverts + 2, numverts + 3]
+    profile = [v1, v2, v3, v4]
 
     self.profiles.append(profile)
     self.edge_profile_map[edge_vert['e'].index] = profile
 
   def get_edge_profile(self, edge):
     # Remapping the edge profiles so that faces can be created in the mesh
-    profile = self.edge_profile_map[edge.index]
-    return [(idx + self.index_base) for idx in profile]
+    return self.edge_profile_map[edge.index]
 
   def create_pole_faces(self):
     for profile in self.profiles:
       if len(self.input_edge_verts) > 1:
-        self.faces.append([self.poles[1], profile[3], profile[2]])
-        self.faces.append([self.poles[0], profile[1], profile[0]])
+        self.bm.faces.new([self.poles[1], profile[3], profile[2]])
+        self.bm.faces.new([self.poles[0], profile[1], profile[0]])
       else:
         for i in range(4):
-          self.faces.append([self.poles[0], profile[(i+1) % 4], profile[i]])
+          self.bm.faces.new([self.poles[0], profile[(i+1) % 4], profile[i]])
 
   def create_inter_profile_faces(self):
     if len(self.input_edge_verts) < 2:
@@ -173,36 +173,37 @@ class VertCap:
       this_profile = self.profiles[this_i]
       next_profile = self.profiles[next_i]
       # Top triangle
-      self.faces.append([self.poles[0], this_profile[0], next_profile[1]])
+      self.bm.faces.new([self.poles[0], this_profile[0], next_profile[1]])
       # Bottom triange
-      self.faces.append([self.poles[1], next_profile[2], this_profile[3]])
+      self.bm.faces.new([self.poles[1], next_profile[2], this_profile[3]])
       # A quad inbetween the two triangles
-      self.faces.append([this_profile[0], this_profile[3], \
+      self.bm.faces.new([this_profile[0], this_profile[3], \
                          next_profile[2], next_profile[1], ])
 
 class ProfileConnector:
-  def __init__(self, edge, vert_caps, verts, **kwargs):
+  def __init__(self, edge, vert_caps, bm, **kwargs):
     self.edge = edge
     self.vert_caps = vert_caps
-    self.verts = verts
+    self.bm = bm
 
-  def compute(self):
-    pass
-
-  def get_faces(self):
+  def join_profiles(self):
     # We have two profiles that need to be connected that are
     # on other ends of an edge. Unfortunately the points in
     # the profiles aren't ordered in a meaningful way that will
     # help us create the faces. We need to figure out which
     # vertices on the opposite profiles are closest to each other.
-    faces = []
     vc0 = self.vert_caps[self.edge.vertices[0]]
     vc1 = self.vert_caps[self.edge.vertices[1]]
-    p0 = vc0.get_edge_profile(self.edge)
-    p1 = vc1.get_edge_profile(self.edge)
 
-    v0 = self.verts[p0[0]]
-    lengths = [(v0 - self.verts[p]).magnitude for p in p1]
+    loop0 = vc0.get_edge_profile(self.edge)
+    loop1 = vc1.get_edge_profile(self.edge)
+
+    v0 = Vector(loop0[0].co)
+    v1 = Vector(loop0[1].co)
+
+    vloop1 = [Vector(p.co) for p in loop1]
+
+    lengths = [(v0 - p).magnitude for p in vloop1]
     min_len = lengths[0]
     min_i = 0
     for i in range(1, len(lengths)):
@@ -210,9 +211,8 @@ class ProfileConnector:
         min_len = lengths[i]
         min_i = i
 
-    v1 = self.verts[p0[1]]
-    len1 = (self.verts[p1[(min_i + 1) % 4]] - v1).magnitude
-    len2 = (self.verts[p1[(min_i - 1) % 4]] - v1).magnitude
+    len1 = (vloop1[(min_i + 1) % 4] - v1).magnitude
+    len2 = (vloop1[(min_i - 1) % 4] - v1).magnitude
 
     mult = 1
     if len1 < len2:
@@ -225,8 +225,7 @@ class ProfileConnector:
       idx1 = (idx + 1) % 4
       idx2 = (min_i2 + mult * idx) % 4
       idx3 = (min_i + mult * idx) % 4
-      faces.append([p0[idx], p0[idx1], p1[idx2], p1[idx3]])
-    return faces
+      self.bm.faces.new([loop0[idx], loop0[idx1], loop1[idx2], loop1[idx3]])
 
 class WireSkin:
   def __init__(self, mesh, **kwargs):
@@ -239,7 +238,7 @@ class WireSkin:
 
   def compute(self):
     # Returns a mesh
-    self.calc_vert_caps()
+    #self.calc_vert_caps()
 
     # TODO ...
     # self.join_vert_caps()
@@ -247,31 +246,24 @@ class WireSkin:
     return self.create_mesh()
 
   def create_mesh(self):
-    verts = []
-    faces = []
+    bm = bmesh.new()
 
-    vert_index = 0
-    for vert_cap in self.vert_caps:
-      vert_index = len(verts)
-      # See comment above about not being proud ...
-      vert_cap.index_base = vert_index
-      verts += vert_cap.verts
-      for face in vert_cap.faces:
-        faces.append([x + vert_index for x in face])
+    self.calc_vert_caps(bm)
 
     # Joining the vert caps ...
     for edge in self.mesh.edges:
       profile_connector =\
-        ProfileConnector(edge, self.vert_caps, verts, **self.kwargs)
-      faces += profile_connector.get_faces()
+        ProfileConnector(edge, self.vert_caps, bm, **self.kwargs)
+      profile_connector.join_profiles()
 
     me = bpy.data.meshes.new('wireskin')
-    me.from_pydata(verts, [], faces)
+    bm.to_mesh(me)
+    bm.free()
     return me
 
-  def calc_vert_caps(self):
+  def calc_vert_caps(self, bm):
     for vert in self.mesh.vertices:
-      self.vert_caps.append(VertCap(vert, **self.kwargs))
+      self.vert_caps.append(VertCap(vert, bm, **self.kwargs))
 
     for edge in self.mesh.edges:
       for i in range(2):

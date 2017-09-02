@@ -236,32 +236,20 @@ class WireSkin:
 
     self.vert_caps = []
 
-  def compute(self):
-    # Returns a mesh
-    #self.calc_vert_caps()
-
-    # TODO ...
-    # self.join_vert_caps()
-
-    return self.create_mesh()
-
   def create_mesh(self):
     bm = bmesh.new()
 
-    self.calc_vert_caps(bm)
-
-    # Joining the vert caps ...
-    for edge in self.mesh.edges:
-      profile_connector =\
-        ProfileConnector(edge, self.vert_caps, bm, **self.kwargs)
-      profile_connector.join_profiles()
+    self.create_vert_caps(bm)
+    self.connect_profiles(bm)
 
     me = bpy.data.meshes.new('wireskin')
     bm.to_mesh(me)
     bm.free()
     return me
 
-  def calc_vert_caps(self, bm):
+  ### Below should be private
+
+  def create_vert_caps(self, bm):
     for vert in self.mesh.vertices:
       self.vert_caps.append(VertCap(vert, bm, **self.kwargs))
 
@@ -274,3 +262,10 @@ class WireSkin:
 
     for vert_cap in self.vert_caps:
       vert_cap.compute_cap()
+
+  def connect_profiles(self, bm):
+    # Joining the vert caps ...
+    for edge in self.mesh.edges:
+      profile_connector =\
+        ProfileConnector(edge, self.vert_caps, bm, **self.kwargs)
+      profile_connector.join_profiles()

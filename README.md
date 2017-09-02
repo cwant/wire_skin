@@ -38,7 +38,7 @@ Quads connect the VertCaps together along edges, and this is pretty straight for
 
 ## Okay, but how do I control this thing?
 
-Well, take a look at the demo file. The `WireSkin` object generates a mesh when it's `compute()` method is called. The object is initialized with a mesh as input, and a number of keyword arguments:
+Well, take a look at the demo file. The `WireSkin` object generates a mesh when it's `create_mesh()` method is called. The object is initialized with a mesh as input, and a number of keyword arguments:
 
 * `dist`: distance between each vertex in the input mesh and the profile vertices described above.
 * `width`: the width of the rectangular profiles.

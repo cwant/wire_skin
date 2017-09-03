@@ -86,7 +86,7 @@ class VertCap:
         mult = -self.inside_radius
         if self.displace:
           mult += self.displace
-        v2 = self.bm.verts.new(self.input_vert + vave * mult)
+        v2 = self.bm.verts.new(self.input_vert - vave * mult)
         self.poles.append(v2)
 
   def reorder_edge_verts(self):

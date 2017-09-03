@@ -33,6 +33,11 @@ class VertCap:
     else:
       self.outside_radius = self.radius
 
+    if 'crease' in kwargs:
+      self.crease = kwargs['crease']
+    else:
+      self.crease = None
+
     # two vert indices
     self.poles = []
     # ordered array of profiles around each edge
@@ -40,13 +45,7 @@ class VertCap:
     # Need to find a profile given the edge it sits on
     self.edge_profile_map = {}
 
-    # Output ... (faces need reindexing when added to mesh)
-    self.verts = []
-    self.faces = []
-
-    # I'm not proud of this ... it's used to create connections between
-    # vert caps
-    self.index_base = None
+    self.creased_edges = []
 
   def add_edge_vert(self, edge, v):
     edge_vert = { 'v': Vector(v.co),
@@ -72,7 +71,6 @@ class VertCap:
 
     if vave.magnitude > 0.0000001:
       vave = vave.normalized()
-      numverts = len(self.verts)
       # Outside pole
       v1 = self.bm.verts.new(self.input_vert - vave * self.outside_radius)
       self.poles.append(v1)
@@ -138,7 +136,6 @@ class VertCap:
     ebinormal = vpole.cross(etangent).normalized() * self.width_2
     enormal = etangent.cross(ebinormal).normalized() * self.height_2
 
-    numverts = len(self.verts)
     v1 = self.bm.verts.new(ecenter + enormal + ebinormal)
     v2 = self.bm.verts.new(ecenter + enormal - ebinormal)
     v3 = self.bm.verts.new(ecenter - enormal - ebinormal)
@@ -180,11 +177,28 @@ class VertCap:
       self.bm.faces.new([this_profile[0], this_profile[3], \
                          next_profile[2], next_profile[1], ])
 
+      if self.crease != None:
+        self.creased_edges.append(self.bm.edges.get([this_profile[0],
+                                                     next_profile[1]]))
+        self.creased_edges.append(self.bm.edges.get([next_profile[2],
+                                                     this_profile[3]]))
+
+  def crease_edges(self, crease_layer):
+    for edge in self.creased_edges:
+      edge[crease_layer] = self.crease
+
 class ProfileConnector:
   def __init__(self, edge, vert_caps, bm, **kwargs):
     self.edge = edge
     self.vert_caps = vert_caps
     self.bm = bm
+
+    if 'crease' in kwargs:
+      self.crease = kwargs['crease']
+    else:
+      self.crease = None
+
+    self.creased_edges = []
 
   def join_profiles(self):
     # We have two profiles that need to be connected that are
@@ -226,21 +240,34 @@ class ProfileConnector:
       idx2 = (min_i2 + mult * idx) % 4
       idx3 = (min_i + mult * idx) % 4
       self.bm.faces.new([loop0[idx], loop0[idx1], loop1[idx2], loop1[idx3]])
+      if self.crease != None:
+        self.creased_edges.append(self.bm.edges.get([loop0[idx1], \
+                                                     loop1[idx2]]))
+
+  def crease_edges(self, crease_layer):
+    for edge in self.creased_edges:
+      edge[crease_layer] = 1.0
 
 class WireSkin:
   def __init__(self, mesh, **kwargs):
     self.mesh = mesh
+    self.crease_layer = None
 
     # Has radius, dist, etc.
     self.kwargs = kwargs
 
     self.vert_caps = []
+    self.profile_connectors = []
 
   def create_mesh(self):
     bm = bmesh.new()
+    if 'crease' in self.kwargs:
+      if self.kwargs['crease'] != None:
+        self.crease_layer = bm.edges.layers.crease.new()
 
     self.create_vert_caps(bm)
     self.connect_profiles(bm)
+    self.crease_edges(bm)
 
     me = bpy.data.meshes.new('wireskin')
     bm.to_mesh(me)
@@ -268,4 +295,12 @@ class WireSkin:
     for edge in self.mesh.edges:
       profile_connector =\
         ProfileConnector(edge, self.vert_caps, bm, **self.kwargs)
+      self.profile_connectors.append(profile_connector)
       profile_connector.join_profiles()
+
+  def crease_edges(self, bm):
+    if self.crease_layer:
+      for vert_cap in self.vert_caps:
+        vert_cap.crease_edges(self.crease_layer)
+      for profile_connector in self.profile_connectors:
+        profile_connector.crease_edges(self.crease_layer)

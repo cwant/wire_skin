@@ -12,7 +12,7 @@ Non-ASCII version:
 ![Screenshot](documentation/wire_skin_demo1.png?raw=true "Screenshot")
 
 ## Motivation
-Blender has a skin modifier that does great things for a lot of meshes. It doesn't seem to do the right thing for some of the sorts of things I want 3D printed (usually the caps where the vertices are have an asymmetry that is displeasing to me). The meshes I am trying to create are typically geometric cages for presenting other 3D objects.
+Blender has a skin modifier that does great things for a lot of meshes. It doesn't seem to do the right thing for some of the sorts of meshes I want 3D printed (usually the caps where the vertices are have an asymmetry that is displeasing to me). The meshes I am trying to create are typically geometric cages for presenting other 3D objects.
 
 This script is meant to address this for me. It certainly isn't a general purpose skinning script, and doesn't pretend to be -- it will likely fail if your input mesh doesn't match a use case similar to mine. I hope the script is useful to you, but really the Blender skin modifier should be more than adequate for most purposes.
 
@@ -51,3 +51,9 @@ A couple of cryptic illustrations should make this clear:
 ![Screenshot](documentation/wire_skin_demo5.png?raw=true "Screenshot")
 ![Screenshot](documentation/wire_skin_demo6.png?raw=true "Screenshot")
 
+But wait, there's more! ...
+
+* `crease`: this sets the subsurf edge creases for edges that surround the holes in the output mesh. Set this to a float between `0.0` and `1.0` or `None`.
+
+![Screenshot](documentation/wire_skin_demo_crease_0.0.png?raw=true "Screenshot")
+![Screenshot](documentation/wire_skin_demo_crease_1.0.png?raw=true "Screenshot")

@@ -38,6 +38,11 @@ class VertCap:
     else:
       self.crease = None
 
+    if 'displace' in kwargs:
+      self.displace = kwargs['displace']
+    else:
+      self.displace = None
+
     # two vert indices
     self.poles = []
     # ordered array of profiles around each edge
@@ -72,10 +77,16 @@ class VertCap:
     if vave.magnitude > 0.0000001:
       vave = vave.normalized()
       # Outside pole
-      v1 = self.bm.verts.new(self.input_vert - vave * self.outside_radius)
+      mult = self.outside_radius
+      if self.displace:
+        mult += self.displace
+      v1 = self.bm.verts.new(self.input_vert - vave * mult)
       self.poles.append(v1)
       if len(self.input_edge_verts) > 1:
-        v2 = self.bm.verts.new(self.input_vert + vave * self.inside_radius)
+        mult = -self.inside_radius
+        if self.displace:
+          mult += self.displace
+        v2 = self.bm.verts.new(self.input_vert + vave * mult)
         self.poles.append(v2)
 
   def reorder_edge_verts(self):
@@ -134,7 +145,10 @@ class VertCap:
 
     # Normal to the pole and the tangent vector
     ebinormal = vpole.cross(etangent).normalized() * self.width_2
-    enormal = etangent.cross(ebinormal).normalized() * self.height_2
+    enormal = etangent.cross(ebinormal).normalized()
+    if self.displace:
+      ecenter += self.displace * enormal
+    enormal *= self.height_2
 
     v1 = self.bm.verts.new(ecenter + enormal + ebinormal)
     v2 = self.bm.verts.new(ecenter + enormal - ebinormal)

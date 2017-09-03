@@ -57,3 +57,7 @@ But wait, there's more! ...
 
 ![Screenshot](documentation/wire_skin_demo_crease_0.0.png?raw=true "Screenshot")
 ![Screenshot](documentation/wire_skin_demo_crease_1.0.png?raw=true "Screenshot")
+
+* `displace`: this float value moves each vert cap in the direction of the outside pole.
+
+![Screenshot](documentation/wire_skin_demo_displace.png?raw=true "Screenshot")

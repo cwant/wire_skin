@@ -45,6 +45,10 @@ class VertCap:
 
     # two vert indices
     self.poles = []
+
+    # Normal to vert (direction of poles)
+    self.normal = None
+
     # ordered array of profiles around each edge
     self.profiles = []
     # Need to find a profile given the edge it sits on
@@ -54,19 +58,10 @@ class VertCap:
 
   def add_edge_vert(self, edge, v):
     edge_vert = { 'v': Vector(v.co),
+                  'i': v.index,
                   'e': edge }
 
     self.input_edge_verts.append(edge_vert)
-
-  def compute_cap(self):
-    if len(self.input_edge_verts) == 0:
-      return
-
-    self.create_pole_verts()
-    self.reorder_edge_verts()
-    self.create_profiles()
-    self.create_pole_faces()
-    self.create_inter_profile_faces()
 
   def diff_average(self, diffs):
     vave = Vector((0.0, 0.0, 0.0))
@@ -119,6 +114,8 @@ class VertCap:
     return normal
 
   def create_pole_verts(self):
+    if len(self.input_edge_verts) == 0:
+      return
     # Unit vectors pointing in direction of connected edges
     diffs = [(ev['v'] - self.input_vert).normalized()
              for ev in self.input_edge_verts]
@@ -128,22 +125,22 @@ class VertCap:
     if vave.magnitude > 0.0000001:
       if (len(self.input_edge_verts) < 3):
         # This is first guess at unit vector in pole direction
-        normal = vave.normalized()
+        self.normal = -vave.normalized()
       else:
         # This is second (better) guess
-        normal = self.least_squares_normal(vave, diffs).normalized()
+        self.normal = -self.least_squares_normal(vave, diffs).normalized()
 
       # Outside pole
       mult = self.outside_radius
       if self.displace:
         mult += self.displace
-      v1 = self.bm.verts.new(self.input_vert - normal * mult)
+      v1 = self.bm.verts.new(self.input_vert + self.normal * mult)
       self.poles.append(v1)
       if len(self.input_edge_verts) > 1:
         mult = -self.inside_radius
         if self.displace:
           mult += self.displace
-        v2 = self.bm.verts.new(self.input_vert - normal * mult)
+        v2 = self.bm.verts.new(self.input_vert + self.normal * mult)
         self.poles.append(v2)
 
   def reorder_edge_verts(self):
@@ -154,7 +151,7 @@ class VertCap:
     if len(self.input_edge_verts) < 2:
       return
 
-    to_z = (Vector(self.poles[0].co) - self.input_vert).normalized()
+    to_z = self.normal
     vedge = self.input_edge_verts[0]['v'] - self.input_vert
     to_y = to_z.cross(vedge).normalized()
     to_x = to_y.cross(to_z).normalized()
@@ -176,17 +173,27 @@ class VertCap:
     # Whew, what a pain that was ...
     self.input_edge_verts = sorted_edge_verts
     
-  def create_profiles(self):
+  def create_profiles(self, vert_caps):
+    if len(self.input_edge_verts) == 0:
+      return
+    self.reorder_edge_verts()
     # Note that the list below is sorted ...
     for edge_vert in self.input_edge_verts:
-      self.create_profile(edge_vert)
+      other_normal = vert_caps[edge_vert['i']].normal
+      self.create_profile(edge_vert, other_normal)
 
-  def create_profile(self, edge_vert):
+  def create_profile(self, edge_vert, other_normal):
     vert = edge_vert['v']
-    # This vector points in the direction of the pole from the vert
-    vpole = Vector(self.poles[0].co) - self.input_vert
     # This vector points down the edge
-    etangent = (vert - self.input_vert).normalized()
+    etangent = vert - self.input_vert
+    vpole = self.normal
+    # Like to have a blended average of this normal and other vert cap normal
+    # To do: use quaternions to blend via rotations
+    if etangent.magnitude > 0.000001:
+      proportion = min([0.5, self.dist/etangent.magnitude])
+      vpole = self.normal * (1 - proportion) + other_normal * proportion
+
+    etangent = etangent.normalized()
     # The center of the profile, sitting on the edge
     ecenter = self.input_vert + (etangent * self.dist)
 
@@ -337,6 +344,10 @@ class WireSkin:
         self.crease_layer = bm.edges.layers.crease.new()
 
     self.create_vert_caps(bm)
+    self.add_edges_to_vert_caps()
+    self.create_vert_cap_poles()
+    self.create_vert_cap_profiles()
+    self.create_vert_cap_faces()
     self.connect_profiles(bm)
     self.crease_edges(bm)
 
@@ -351,6 +362,7 @@ class WireSkin:
     for vert in self.mesh.vertices:
       self.vert_caps.append(VertCap(vert, bm, **self.kwargs))
 
+  def add_edges_to_vert_caps(self):
     for edge in self.mesh.edges:
       for i in range(2):
         this_vert_index = edge.vertices[i]
@@ -358,8 +370,18 @@ class WireSkin:
         other_vert = self.mesh.vertices[other_vert_index]
         self.vert_caps[this_vert_index].add_edge_vert(edge, other_vert)
 
+  def create_vert_cap_poles(self):
     for vert_cap in self.vert_caps:
-      vert_cap.compute_cap()
+      vert_cap.create_pole_verts()
+
+  def create_vert_cap_profiles(self):
+    for vert_cap in self.vert_caps:
+      vert_cap.create_profiles(self.vert_caps)
+
+  def create_vert_cap_faces(self):
+    for vert_cap in self.vert_caps:
+      vert_cap.create_pole_faces()
+      vert_cap.create_inter_profile_faces()
 
   def connect_profiles(self, bm):
     # Joining the vert caps ...

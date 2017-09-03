@@ -61,3 +61,37 @@ But wait, there's more! ...
 * `displace`: this float value moves each vert cap in the direction of the outside pole.
 
 ![Screenshot](documentation/wire_skin_demo_displace.png?raw=true "Screenshot")
+w
+## The demo file
+
+The demo file (wire_skin_demo.blend) had five examples on layers 1 - 5. The script in the text window generates all of the examples (alt-P to run when your mouse is in the text window).
+
+### Layer 1
+
+Just a cube-ish shape with some sharp corners:
+
+![Screenshot](documentation/wire_skin_demo_layer1.png?raw=true "Screenshot")
+
+### Layer 2
+
+An example using creasing:
+
+![Screenshot](documentation/wire_skin_demo_layer2.png?raw=true "Screenshot")
+
+### Layer 3
+
+A spikey thingy:
+
+![Screenshot](documentation/wire_skin_demo_layer3.png?raw=true "Screenshot")
+
+### Layer 4
+
+Using the same wire frame to generate a few intersecting objects with different parameters:
+
+![Screenshot](documentation/wire_skin_demo_layer4.png?raw=true "Screenshot")
+
+### Layer 5
+
+Generating multiple creased objects from the same wireframe, but using a boolean difference with the displace option to make some interesting shapes:
+
+![Screenshot](documentation/wire_skin_demo_layer5.png?raw=true "Screenshot")

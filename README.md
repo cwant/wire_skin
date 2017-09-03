@@ -11,6 +11,8 @@ Non-ASCII version:
 
 ![Screenshot](documentation/wire_skin_demo1.png?raw=true "Screenshot")
 
+[Click me to skip all the blah-blah-blah and look at some pictures.](#the-demo-file)
+
 ## Motivation
 Blender has a skin modifier that does great things for a lot of meshes. It doesn't seem to do the right thing for some of the sorts of meshes I want 3D printed (usually the caps where the vertices are have an asymmetry that is displeasing to me). The meshes I am trying to create are typically geometric cages for presenting other 3D objects.
 

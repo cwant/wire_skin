@@ -43,6 +43,11 @@ class VertCap:
     else:
       self.displace = None
 
+    if 'proportional_scale' in kwargs and kwargs['proportional_scale']:
+      self.proportional_scale = True
+    else:
+      self.proportional_scale = False
+
     # two vert indices
     self.poles = []
 
@@ -57,9 +62,11 @@ class VertCap:
     self.creased_edges = []
 
   def add_edge_vert(self, edge, v):
-    edge_vert = { 'v': Vector(v.co),
+    vec = Vector(v.co)
+    edge_vert = { 'v': vec,
                   'i': v.index,
-                  'e': edge }
+                  'e': edge,
+                  'l': (self.input_vert - vec).magnitude }
 
     self.input_edge_verts.append(edge_vert)
 
@@ -131,13 +138,20 @@ class VertCap:
         self.normal = -self.least_squares_normal(vave, diffs).normalized()
 
       # Outside pole
-      mult = self.outside_radius
+      scale = 1.0
+      if self.proportional_scale:
+        # Scale of poles is proportional to average edge length
+        scale = 0.0
+        for edge_vert in self.input_edge_verts:
+          scale += edge_vert['l']
+        scale *= (1.0 / len(self.input_edge_verts))
+      mult = self.outside_radius * scale
       if self.displace:
         mult += self.displace
       v1 = self.bm.verts.new(self.input_vert + self.normal * mult)
       self.poles.append(v1)
       if len(self.input_edge_verts) > 1:
-        mult = -self.inside_radius
+        mult = -self.inside_radius * scale
         if self.displace:
           mult += self.displace
         v2 = self.bm.verts.new(self.input_vert + self.normal * mult)
@@ -183,6 +197,13 @@ class VertCap:
       self.create_profile(edge_vert, other_normal)
 
   def create_profile(self, edge_vert, other_normal):
+    scale = 1.0
+    if self.proportional_scale:
+      scale = edge_vert['l']
+    dist = self.dist * scale
+    width_2 = self.width_2 * scale
+    height_2 = self.height_2 * scale
+
     vert = edge_vert['v']
     # This vector points down the edge
     etangent = vert - self.input_vert
@@ -190,12 +211,12 @@ class VertCap:
     # Like to have a blended average of this normal and other vert cap normal
     # To do: use quaternions to blend via rotations
     if etangent.magnitude > 0.000001:
-      proportion = min([0.5, self.dist/etangent.magnitude])
+      proportion = min([0.5, dist/etangent.magnitude])
       vpole = self.normal * (1 - proportion) + other_normal * proportion
 
     etangent = etangent.normalized()
     # The center of the profile, sitting on the edge
-    ecenter = self.input_vert + (etangent * self.dist)
+    ecenter = self.input_vert + (etangent * dist)
 
     if len(self.input_edge_verts) < 2:
       # When the vert cap only has one edge coming to it,
@@ -208,11 +229,11 @@ class VertCap:
         vpole = etangent + Vector((1, 1, 0))
 
     # Normal to the pole and the tangent vector
-    ebinormal = vpole.cross(etangent).normalized() * self.width_2
+    ebinormal = vpole.cross(etangent).normalized() * width_2
     enormal = etangent.cross(ebinormal).normalized()
     if self.displace:
       ecenter += self.displace * enormal
-    enormal *= self.height_2
+    enormal *= height_2
 
     v1 = self.bm.verts.new(ecenter + enormal + ebinormal)
     v2 = self.bm.verts.new(ecenter + enormal - ebinormal)

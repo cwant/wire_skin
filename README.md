@@ -65,6 +65,11 @@ But wait, there's more! ...
 
 ![Screenshot](documentation/wire_skin_demo_displace.png?raw=true "Screenshot")
 w
+
+* `proportional_scale`: This is a boolean option. when this option is selected, the various length settings become proportions of the edge lengths near the vert cap:
+** pole measurements `inside_radius` and `outside_radius` are proportial to the average length of the incoming edges to a vertex;
+** profile measurements `dist`, `width`, and `height` are proportial to the edge that the profile is on.
+
 ## The demo file
 
 The demo file (wire_skin_demo.blend) had five examples on layers 1 - 5. The script in the text window generates all of the examples (alt-P to run when your mouse is in the text window).
@@ -104,3 +109,9 @@ Generating multiple creased objects from the same wireframe, but using a boolean
 A honeycomb torus thingy:
 
 ![Screenshot](documentation/wire_skin_demo_layer6.png?raw=true "Screenshot")
+
+### Layer 7
+
+A honeycomb torus thingy, but using the proportional scale option
+
+![Screenshot](documentation/wire_skin_demo_layer7.png?raw=true "Screenshot")

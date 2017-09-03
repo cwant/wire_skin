@@ -98,3 +98,9 @@ Using the same wire frame to generate a few intersecting objects with different 
 Generating multiple creased objects from the same wireframe, but using a boolean difference with the displace option to make some interesting shapes:
 
 ![Screenshot](documentation/wire_skin_demo_layer5.png?raw=true "Screenshot")
+
+### Layer 6
+
+A honeycomb torus thingy:
+
+![Screenshot](documentation/wire_skin_demo_layer6.png?raw=true "Screenshot")

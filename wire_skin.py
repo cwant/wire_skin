@@ -68,25 +68,82 @@ class VertCap:
     self.create_pole_faces()
     self.create_inter_profile_faces()
 
-  def create_pole_verts(self):
+  def diff_average(self, diffs):
     vave = Vector((0.0, 0.0, 0.0))
-    for ev in self.input_edge_verts:
-      vert = ev['v']
-      vave += (vert - self.input_vert).normalized()
+    for diff in diffs:
+      vave += diff
+    return vave * (1.0/len(diffs))
 
+  def least_squares_normal(self, vave, diffs):
+    # Method taken from here:
+    # http://www.ilikebigbits.com/blog/2015/3/2/plane-from-points
+    # Get normal vector for plane that best fits the vectors in diffs
+    n = len(diffs)
+    centroid = vave
+
+    # Calc full 3x3 covariance matrix, excluding symmetries:
+    (xx, xy, xz, yy, yz, zz) = [0.0]*6
+
+    for p in diffs:
+      r = p - centroid;
+      xx += r[0] * r[0]
+      xy += r[0] * r[1]
+      xz += r[0] * r[2]
+      yy += r[1] * r[1]
+      yz += r[1] * r[2]
+      zz += r[2] * r[2]
+
+    det_x = yy*zz - yz*yz
+    det_y = xx*zz - xz*xz
+    det_z = xx*yy - xy*xy
+
+    det_max = max([abs(det_x), abs(det_y), abs(det_z)])
+    if (det_max < 0.00001):
+      # Give up
+      return vave
+
+    if det_max == abs(det_x):
+      a = (xz*yz - xy*zz) / det_x
+      b = (xy*yz - xz*yy) / det_x
+      normal = Vector((1.0, a, b))
+    elif det_max == abs(det_y):
+      a = (yz*xz - xy*zz) / det_y
+      b = (xy*xz - yz*xx) / det_y
+      normal = Vector((a, 1.0, b))
+    else:
+      a = (yz*xy - xz*yy) / det_z
+      b = (xz*xy - yz*xx) / det_z
+      normal = Vector((a, b, 1.0))
+    if vave * normal < 0.0:
+      return -normal
+    return normal
+
+  def create_pole_verts(self):
+    # Unit vectors pointing in direction of connected edges
+    diffs = [(ev['v'] - self.input_vert).normalized()
+             for ev in self.input_edge_verts]
+    vave = self.diff_average(diffs)
+
+    # Things break if vave is really small (ambiguous curvature)
     if vave.magnitude > 0.0000001:
-      vave = vave.normalized()
+      if (len(self.input_edge_verts) < 3):
+        # This is first guess at unit vector in pole direction
+        normal = vave.normalized()
+      else:
+        # This is second (better) guess
+        normal = self.least_squares_normal(vave, diffs).normalized()
+
       # Outside pole
       mult = self.outside_radius
       if self.displace:
         mult += self.displace
-      v1 = self.bm.verts.new(self.input_vert - vave * mult)
+      v1 = self.bm.verts.new(self.input_vert - normal * mult)
       self.poles.append(v1)
       if len(self.input_edge_verts) > 1:
         mult = -self.inside_radius
         if self.displace:
           mult += self.displace
-        v2 = self.bm.verts.new(self.input_vert - vave * mult)
+        v2 = self.bm.verts.new(self.input_vert - normal * mult)
         self.poles.append(v2)
 
   def reorder_edge_verts(self):

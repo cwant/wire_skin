@@ -67,8 +67,8 @@ But wait, there's more! ...
 w
 
 * `proportional_scale`: This is a boolean option. when this option is selected, the various length settings become proportions of the edge lengths near the vert cap:
-** pole measurements `inside_radius` and `outside_radius` are proportial to the average length of the incoming edges to a vertex;
-** profile measurements `dist`, `width`, and `height` are proportial to the edge that the profile is on.
+  * pole measurements `inside_radius` and `outside_radius` are proportial to the average length of the incoming edges to a vertex;
+  * profile measurements `dist`, `width`, and `height` are proportial to the edge that the profile is on.
 
 ## The demo file
 

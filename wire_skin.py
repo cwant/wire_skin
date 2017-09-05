@@ -368,20 +368,12 @@ class ProfileConnector:
     if not loop[0] or not loop[1]:
       return
 
-    vloop = [None] * 2; up = [None] * 2; spin = [None] * 2; out = [None] * 2
-    # Figure out orientation (do the loops rotate in the same direction?)
+    vloop = [None] * 2
     for i in range(2):
       vloop[i] = [Vector(p.co) for p in loop[i]]
-      up[i] = vloop[i][0] - v[i]
-      spin[i] = vloop[i][1] - vloop[i][0]
-      out[i] = up[i].cross(spin[i])
 
-    if out[0] * out[1] <= 0:
-      spin = -1
-    else:
-      spin = 1
-
-    # Whelp, all of the above doesn't work, but this does:
+    # I had some fancy math to calculate 'spin' below.
+    # It didn't work, but this does ...
     spin = -1
 
     # Figure out which rotation of loops yeilds edges with

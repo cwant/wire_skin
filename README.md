@@ -66,9 +66,13 @@ But wait, there's more! ...
 ![Screenshot](documentation/wire_skin_demo_displace.png?raw=true "Screenshot")
 w
 
-* `proportional_scale`: This is a boolean option. when this option is selected, the various length settings become proportions of the edge lengths near the vert cap:
+* `proportional_scale`: This is a boolean option. When this option is selected, the various length settings become proportions of the edge lengths near the vert cap:
   * pole measurements `inside_radius` and `outside_radius` are proportial to the average length of the incoming edges to a vertex;
   * profile measurements `dist`, `width`, and `height` are proportial to the edge that the profile is on.
+
+Now how much would you pay? But wait:
+
+* `edges_without_poles`: This is a boolean option. When this option is selected, the vertices that are connected to two edges (basically a bisected edge) do not have a full VertCap on them -- just a profile is produced at the vertex, not poles. This allows the user some control of the curvature on edges without. Take a look at the demo file.
 
 ## The demo file
 
@@ -112,6 +116,12 @@ A honeycomb torus thingy:
 
 ### Layer 7
 
-A honeycomb torus thingy, but using the proportional scale option
+A honeycomb torus thingy, but using the proportional scale option:
 
 ![Screenshot](documentation/wire_skin_demo_layer7.png?raw=true "Screenshot")
+
+### Layer 8
+
+Demo of the "Edges without poles" feature:
+
+![Screenshot](documentation/wire_skin_demo_layer8.png?raw=true "Screenshot")

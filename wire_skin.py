@@ -48,6 +48,15 @@ class VertCap:
     else:
       self.proportional_scale = False
 
+    if 'edges_without_poles' in kwargs and kwargs['edges_without_poles']:
+      self.edges_without_poles = True
+    else:
+      self.edges_without_poles = False
+
+    # These are for verts with only two edges
+    self.make_poles = True
+    self.make_faces = True
+
     # two vert indices
     self.poles = []
 
@@ -123,6 +132,12 @@ class VertCap:
   def create_pole_verts(self):
     if len(self.input_edge_verts) == 0:
       return
+
+    if len(self.input_edge_verts) == 2:
+      if (self.edges_without_poles):
+        self.make_poles = False
+        self.make_faces = False
+
     # Unit vectors pointing in direction of connected edges
     diffs = [(ev['v'] - self.input_vert).normalized()
              for ev in self.input_edge_verts]
@@ -148,14 +163,16 @@ class VertCap:
       mult = self.outside_radius * scale
       if self.displace:
         mult += self.displace
-      v1 = self.bm.verts.new(self.input_vert + self.normal * mult)
-      self.poles.append(v1)
+      if self.make_poles:
+        v1 = self.bm.verts.new(self.input_vert + self.normal * mult)
+        self.poles.append(v1)
       if len(self.input_edge_verts) > 1:
         mult = -self.inside_radius * scale
         if self.displace:
           mult += self.displace
-        v2 = self.bm.verts.new(self.input_vert + self.normal * mult)
-        self.poles.append(v2)
+        if self.make_poles:
+          v2 = self.bm.verts.new(self.input_vert + self.normal * mult)
+          self.poles.append(v2)
 
   def reorder_edge_verts(self):
     # Treat the pole as the up vector, and project the edge verts
@@ -190,19 +207,42 @@ class VertCap:
   def create_profiles(self, vert_caps):
     if len(self.input_edge_verts) == 0:
       return
-    self.reorder_edge_verts()
-    # Note that the list below is sorted ...
-    for edge_vert in self.input_edge_verts:
-      other_normal = vert_caps[edge_vert['i']].normal
-      self.create_profile(edge_vert, other_normal)
+    if len(self.input_edge_verts) > 2:
+      self.reorder_edge_verts()
+    if self.make_poles:
+      # Note that the list below is sorted ...
+      for edge_vert in self.input_edge_verts:
+        other_normal = vert_caps[edge_vert['i']].normal
+        self.create_regular_profile(edge_vert, other_normal)
+    else:
+      self.create_poleless_profiles()
 
-  def create_profile(self, edge_vert, other_normal):
+  def create_poleless_profiles(self):
+    edge_vert0 = self.input_edge_verts[0]
+    edge_vert1 = self.input_edge_verts[1]
+    vert0 = edge_vert0['v']
+    etangent = vert0 - self.input_vert
+    ecenter = self.input_vert
+    enormal = self.normal.normalized()
+    ebinormal = enormal.cross(etangent).normalized()
+
+    scale = 1.0
+    if self.proportional_scale:
+      scale = (edge_vert0['l'] + edge_vert1['l']) / 2.0
+
+    profile0 = self.create_profile_verts(ecenter, enormal, ebinormal, scale)
+    profile1 = [profile0[(-i) % 4] for i in range(4)]
+
+    self.profiles.append(profile0)
+    self.profiles.append(profile1)
+    self.edge_profile_map[edge_vert0['e'].index] = profile0
+    self.edge_profile_map[edge_vert1['e'].index] = profile1
+
+  def create_regular_profile(self, edge_vert, other_normal):
     scale = 1.0
     if self.proportional_scale:
       scale = edge_vert['l']
     dist = self.dist * scale
-    width_2 = self.width_2 * scale
-    height_2 = self.height_2 * scale
 
     vert = edge_vert['v']
     # This vector points down the edge
@@ -210,11 +250,12 @@ class VertCap:
     vpole = self.normal
     # Like to have a blended average of this normal and other vert cap normal
     # To do: use quaternions to blend via rotations
-    if etangent.magnitude > 0.000001:
+    if etangent.magnitude > 0.000001 and self.make_poles:
       proportion = min([0.5, dist/etangent.magnitude])
       vpole = self.normal * (1 - proportion) + other_normal * proportion
 
     etangent = etangent.normalized()
+
     # The center of the profile, sitting on the edge
     ecenter = self.input_vert + (etangent * dist)
 
@@ -229,10 +270,20 @@ class VertCap:
         vpole = etangent + Vector((1, 1, 0))
 
     # Normal to the pole and the tangent vector
-    ebinormal = vpole.cross(etangent).normalized() * width_2
+    ebinormal = vpole.cross(etangent).normalized()
     enormal = etangent.cross(ebinormal).normalized()
+
+    profile = self.create_profile_verts(ecenter, enormal, ebinormal, scale)
+
+    self.profiles.append(profile)
+    self.edge_profile_map[edge_vert['e'].index] = profile
+
+  def create_profile_verts(self, ecenter, enormal, ebinormal, scale):
+    width_2 = self.width_2 * scale
+    height_2 = self.height_2 * scale
     if self.displace:
       ecenter += self.displace * enormal
+    ebinormal *= width_2
     enormal *= height_2
 
     v1 = self.bm.verts.new(ecenter + enormal + ebinormal)
@@ -240,16 +291,17 @@ class VertCap:
     v3 = self.bm.verts.new(ecenter - enormal - ebinormal)
     v4 = self.bm.verts.new(ecenter - enormal + ebinormal)
 
-    profile = [v1, v2, v3, v4]
-
-    self.profiles.append(profile)
-    self.edge_profile_map[edge_vert['e'].index] = profile
-
+    return [v1, v2, v3, v4]
+    
   def get_edge_profile(self, edge):
     # Remapping the edge profiles so that faces can be created in the mesh
+    if edge.index not in self.edge_profile_map:
+      return None
     return self.edge_profile_map[edge.index]
 
   def create_pole_faces(self):
+    if self.make_faces == False:
+      return
     for profile in self.profiles:
       if len(self.input_edge_verts) > 1:
         self.bm.faces.new([self.poles[1], profile[3], profile[2]])
@@ -259,6 +311,8 @@ class VertCap:
           self.bm.faces.new([self.poles[0], profile[(i+1) % 4], profile[i]])
 
   def create_inter_profile_faces(self):
+    if self.make_faces == False:
+      return
     if len(self.input_edge_verts) < 2:
       return
 
@@ -303,20 +357,40 @@ class ProfileConnector:
     # We have two profiles that need to be connected that are
     # on other ends of an edge. Unfortunately the points in
     # the profiles aren't ordered in a meaningful way that will
-    # help us create the faces. We need to figure out which
-    # vertices on the opposite profiles are closest to each other.
-    vc0 = self.vert_caps[self.edge.vertices[0]]
-    vc1 = self.vert_caps[self.edge.vertices[1]]
+    # help us create the faces.
 
-    loop0 = vc0.get_edge_profile(self.edge)
-    loop1 = vc1.get_edge_profile(self.edge)
+    vc = [None] * 2; v = [None] * 2; loop = [None] * 2;
+    for i in range(2):
+      vc[i] = self.vert_caps[self.edge.vertices[i]]
+      v[i] = vc[i].input_vert
+      loop[i] = vc[i].get_edge_profile(self.edge)
 
-    v0 = Vector(loop0[0].co)
-    v1 = Vector(loop0[1].co)
+    if not loop[0] or not loop[1]:
+      return
 
-    vloop1 = [Vector(p.co) for p in loop1]
+    vloop = [None] * 2; up = [None] * 2; spin = [None] * 2; out = [None] * 2
+    # Figure out orientation (do the loops rotate in the same direction?)
+    for i in range(2):
+      vloop[i] = [Vector(p.co) for p in loop[i]]
+      up[i] = vloop[i][0] - v[i]
+      spin[i] = vloop[i][1] - vloop[i][0]
+      out[i] = up[i].cross(spin[i])
 
-    lengths = [(v0 - p).magnitude for p in vloop1]
+    if out[0] * out[1] <= 0:
+      spin = -1
+    else:
+      spin = 1
+
+    # Whelp, all of the above doesn't work, but this does:
+    spin = -1
+
+    # Figure out which rotation of loops yeilds edges with
+    # least length
+    lengths = [0.0] * 4
+    for i in range(4):
+      for j in range(4):
+        lengths[i] += (vloop[0][j] - vloop[1][(i + j * spin) % 4]).magnitude
+
     min_len = lengths[0]
     min_i = 0
     for i in range(1, len(lengths)):
@@ -324,24 +398,14 @@ class ProfileConnector:
         min_len = lengths[i]
         min_i = i
 
-    len1 = (vloop1[(min_i + 1) % 4] - v1).magnitude
-    len2 = (vloop1[(min_i - 1) % 4] - v1).magnitude
-
-    mult = 1
-    if len1 < len2:
-      min_i2 = (min_i + 1) % 4
-    else:
-      min_i2 = (min_i - 1) % 4
-      mult = -1
-
     for idx in range(4):
       idx1 = (idx + 1) % 4
-      idx2 = (min_i2 + mult * idx) % 4
-      idx3 = (min_i + mult * idx) % 4
-      self.bm.faces.new([loop0[idx], loop0[idx1], loop1[idx2], loop1[idx3]])
+      idx2 = (min_i + (idx + 1) * spin) % 4
+      idx3 = (min_i + idx * spin) % 4
+      self.bm.faces.new([loop[0][idx], loop[0][idx1], loop[1][idx2], loop[1][idx3]])
       if self.crease != None:
-        self.creased_edges.append(self.bm.edges.get([loop0[idx1], \
-                                                     loop1[idx2]]))
+        self.creased_edges.append(self.bm.edges.get([loop[0][idx1], \
+                                                     loop[1][idx2]]))
 
   def crease_edges(self, crease_layer):
     for edge in self.creased_edges:

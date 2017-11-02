@@ -129,7 +129,7 @@ class VertCap:
       return -normal
     return normal
 
-  def create_pole_verts(self):
+  def calculate_normal(self):
     if len(self.input_edge_verts) == 0:
       return
 
@@ -152,27 +152,40 @@ class VertCap:
         # This is second (better) guess
         self.normal = -self.least_squares_normal(vave, diffs).normalized()
 
-      # Outside pole
-      scale = 1.0
-      if self.proportional_scale:
-        # Scale of poles is proportional to average edge length
-        scale = 0.0
-        for edge_vert in self.input_edge_verts:
-          scale += edge_vert['l']
-        scale *= (1.0 / len(self.input_edge_verts))
-      mult = self.outside_radius * scale
+  def adjust_normal(self, vert_caps):
+    if self.make_poles: return
+    normal = Vector([0, 0, 0])
+    num = 0
+    for edge_vert in self.input_edge_verts:
+      vert_cap = vert_caps[edge_vert['i']]
+      if vert_cap.make_poles:
+        normal += vert_cap.normal
+        num += 1
+    if num > 0:
+      self.normal = normal / num
+
+  def create_pole_verts(self):
+    if self.normal == None or not self.make_poles: return
+    # Outside pole
+    scale = 1.0
+    if self.proportional_scale:
+      # Scale of poles is proportional to average edge length
+      scale = 0.0
+      for edge_vert in self.input_edge_verts:
+        scale += edge_vert['l']
+      scale *= (1.0 / len(self.input_edge_verts))
+
+    mult = self.outside_radius * scale
+    if self.displace:
+      mult += self.displace
+    v1 = self.bm.verts.new(self.input_vert + self.normal * mult)
+    self.poles.append(v1)
+    if len(self.input_edge_verts) > 1:
+      mult = -self.inside_radius * scale
       if self.displace:
         mult += self.displace
-      if self.make_poles:
-        v1 = self.bm.verts.new(self.input_vert + self.normal * mult)
-        self.poles.append(v1)
-      if len(self.input_edge_verts) > 1:
-        mult = -self.inside_radius * scale
-        if self.displace:
-          mult += self.displace
-        if self.make_poles:
-          v2 = self.bm.verts.new(self.input_vert + self.normal * mult)
-          self.poles.append(v2)
+      v2 = self.bm.verts.new(self.input_vert + self.normal * mult)
+      self.poles.append(v2)
 
   def reorder_edge_verts(self):
     # Treat the pole as the up vector, and project the edge verts
@@ -221,7 +234,9 @@ class VertCap:
     edge_vert0 = self.input_edge_verts[0]
     edge_vert1 = self.input_edge_verts[1]
     vert0 = edge_vert0['v']
-    etangent = vert0 - self.input_vert
+    vert1 = edge_vert1['v']
+    # Might need to be smarter about the direction here if things get funky
+    etangent = vert0 - vert1
     ecenter = self.input_vert
     enormal = self.normal.normalized()
     ebinormal = enormal.cross(etangent).normalized()
@@ -229,6 +244,7 @@ class VertCap:
     scale = 1.0
     if self.proportional_scale:
       scale = (edge_vert0['l'] + edge_vert1['l']) / 2.0
+
 
     profile0 = self.create_profile_verts(ecenter, enormal, ebinormal, scale)
     profile1 = [profile0[(-i) % 4] for i in range(4)]
@@ -422,6 +438,8 @@ class WireSkin:
 
     self.create_vert_caps(bm)
     self.add_edges_to_vert_caps()
+    self.calculate_vert_cap_normals()
+    self.adjust_vert_cap_normals()
     self.create_vert_cap_poles()
     self.create_vert_cap_profiles()
     self.create_vert_cap_faces()
@@ -447,9 +465,17 @@ class WireSkin:
         other_vert = self.mesh.vertices[other_vert_index]
         self.vert_caps[this_vert_index].add_edge_vert(edge, other_vert)
 
+  def calculate_vert_cap_normals(self):
+    for vert_cap in self.vert_caps:
+      vert_cap.calculate_normal()
+
   def create_vert_cap_poles(self):
     for vert_cap in self.vert_caps:
       vert_cap.create_pole_verts()
+
+  def adjust_vert_cap_normals(self):
+    for vert_cap in self.vert_caps:
+      vert_cap.adjust_normal(self.vert_caps)
 
   def create_vert_cap_profiles(self):
     for vert_cap in self.vert_caps:

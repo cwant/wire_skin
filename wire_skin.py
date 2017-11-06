@@ -8,15 +8,19 @@ class VertCap:
     self.bm = bm
     self.input_edge_verts = []
 
-    if 'width' in kwargs:
-      self.width_2 = kwargs['width'] / 2.0
-    else:
-      self.width_2 = 0.1
+    self.width_2 = kwargs.get('width') or None
+    if self.width_2: self.width_2 *= 0.5
+    else: self.width_2 = 0.1
 
-    if 'height' in kwargs:
-      self.height_2 = kwargs['height'] / 2.0
-    else:
-      self.height_2 = self.width_2
+    self.max_width_2 = kwargs.get('max_width') or None
+    if self.max_width_2: self.max_width_2 *= 0.5
+
+    self.height_2 = kwargs.get('height') or None
+    if self.height_2: self.height_2 *= 0.5
+    else: self.height_2 = 0.1
+
+    self.max_height_2 = kwargs.get('max_height') or None
+    if self.max_height_2: self.max_height_2 *= 0.5
 
     self.dist = kwargs.get('dist') or 0.25
     self.inside_radius = kwargs.get('inside_radius') or 0.25
@@ -274,7 +278,13 @@ class VertCap:
 
   def create_profile_verts(self, ecenter, enormal, ebinormal, scale):
     width_2 = self.width_2 * scale
+    if self.max_width_2 and width_2 > self.max_width_2:
+      width_2 = self.max_width_2
+
     height_2 = self.height_2 * scale
+    if self.max_height_2 and height_2 > self.max_height_2:
+      height_2 = self.max_height_2
+
     if self.displace:
       ecenter += self.displace * enormal
     ebinormal *= width_2

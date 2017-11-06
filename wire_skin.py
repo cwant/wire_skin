@@ -18,40 +18,13 @@ class VertCap:
     else:
       self.height_2 = self.width_2
 
-    if 'dist' in kwargs:
-      self.dist = kwargs['dist']
-    else:
-      self.dist = 0,25
-
-    if 'inside_radius' in kwargs:
-      self.inside_radius = kwargs['inside_radius']
-    else:
-      self.inside_radius = self.radius
-
-    if 'outside_radius' in kwargs:
-      self.outside_radius = kwargs['outside_radius']
-    else:
-      self.outside_radius = self.radius
-
-    if 'crease' in kwargs:
-      self.crease = kwargs['crease']
-    else:
-      self.crease = None
-
-    if 'displace' in kwargs:
-      self.displace = kwargs['displace']
-    else:
-      self.displace = None
-
-    if 'proportional_scale' in kwargs and kwargs['proportional_scale']:
-      self.proportional_scale = True
-    else:
-      self.proportional_scale = False
-
-    if 'edges_without_poles' in kwargs and kwargs['edges_without_poles']:
-      self.edges_without_poles = True
-    else:
-      self.edges_without_poles = False
+    self.dist = kwargs.get('dist') or 0.25
+    self.inside_radius = kwargs.get('inside_radius') or 0.25
+    self.outside_radius = kwargs.get('outside_radius') or 0.25
+    self.crease = kwargs.get('crease') or None
+    self.displace = kwargs.get('displace') or None
+    self.proportional_scale = kwargs.get('proportional_scale') or False
+    self.edges_without_poles = kwargs.get('edges_without_poles') or False
 
     # These are for verts with only two edges
     self.make_poles = True

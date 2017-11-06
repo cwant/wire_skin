@@ -25,7 +25,9 @@ class VertCap:
     self.displace = kwargs.get('displace') or None
     self.proportional_scale = kwargs.get('proportional_scale') or False
     self.edges_without_poles = kwargs.get('edges_without_poles') or False
-
+    self.vertex_normal_hints = kwargs.get('vertex_normal_hints') or False
+    if self.vertex_normal_hints:
+      self.vert_normal = v.normal
     # These are for verts with only two edges
     self.make_poles = True
     self.make_faces = True
@@ -124,6 +126,9 @@ class VertCap:
       else:
         # This is second (better) guess
         self.normal = -self.least_squares_normal(vave, diffs).normalized()
+    if self.vertex_normal_hints:
+      if self.normal * self.vert_normal < 0.0:
+        self.normal *= -1.0
 
   def adjust_normal(self, vert_caps):
     if self.make_poles: return

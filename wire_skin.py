@@ -11,20 +11,31 @@ class VertCap:
     self.width_2 = kwargs.get('width') or None
     if self.width_2: self.width_2 *= 0.5
     else: self.width_2 = 0.1
-
     self.max_width_2 = kwargs.get('max_width') or None
     if self.max_width_2: self.max_width_2 *= 0.5
+    self.min_width_2 = kwargs.get('min_width') or None
+    if self.min_width_2: self.min_width_2 *= 0.5
 
     self.height_2 = kwargs.get('height') or None
     if self.height_2: self.height_2 *= 0.5
     else: self.height_2 = 0.1
-
     self.max_height_2 = kwargs.get('max_height') or None
     if self.max_height_2: self.max_height_2 *= 0.5
+    self.min_height_2 = kwargs.get('min_height') or None
+    if self.min_height_2: self.min_height_2 *= 0.5
 
     self.dist = kwargs.get('dist') or 0.25
+    self.max_dist = kwargs.get('max_dist') or None
+    self.min_dist = kwargs.get('min_dist') or None
+
     self.inside_radius = kwargs.get('inside_radius') or 0.25
+    self.max_inside_radius = kwargs.get('max_inside_radius') or None
+    self.min_inside_radius = kwargs.get('min_inside_radius') or None
+
     self.outside_radius = kwargs.get('outside_radius') or 0.25
+    self.max_outside_radius = kwargs.get('max_outside_radius') or None
+    self.min_outside_radius = kwargs.get('min_outside_radius') or None
+
     self.crease = kwargs.get('crease') or None
     self.displace = kwargs.get('displace') or None
     self.proportional_scale = kwargs.get('proportional_scale') or False
@@ -157,16 +168,25 @@ class VertCap:
         scale += edge_vert['l']
       scale *= (1.0 / len(self.input_edge_verts))
 
-    mult = self.outside_radius * scale
+    outside_radius = self.outside_radius * scale
+    if self.max_outside_radius and outside_radius > self.max_outside_radius:
+      outside_radius = self.max_outside_radius
+    if self.min_outside_radius and outside_radius < self.min_outside_radius:
+      outside_radius = self.min_outside_radius
     if self.displace:
-      mult += self.displace
-    v1 = self.bm.verts.new(self.input_vert + self.normal * mult)
+      outside_radius += self.displace
+    v1 = self.bm.verts.new(self.input_vert + self.normal * outside_radius)
+
     self.poles.append(v1)
     if len(self.input_edge_verts) > 1:
-      mult = -self.inside_radius * scale
+      inside_radius = self.inside_radius * scale
+      if self.max_inside_radius and inside_radius > self.max_inside_radius:
+        inside_radius = self.max_inside_radius
+      if self.min_inside_radius and inside_radius < self.min_inside_radius:
+        inside_radius = self.min_inside_radius
       if self.displace:
-        mult += self.displace
-      v2 = self.bm.verts.new(self.input_vert + self.normal * mult)
+        inside_radius -= self.displace
+      v2 = self.bm.verts.new(self.input_vert - self.normal * inside_radius)
       self.poles.append(v2)
 
   def reorder_edge_verts(self):
@@ -241,6 +261,10 @@ class VertCap:
     if self.proportional_scale:
       scale = edge_vert['l']
     dist = self.dist * scale
+    if self.max_dist and dist > self.max_dist:
+      dist = self.max_dist
+    if self.min_dist and dist < self.min_dist:
+      dist = self.min_dist
 
     vert = edge_vert['v']
     # This vector points down the edge
@@ -280,10 +304,14 @@ class VertCap:
     width_2 = self.width_2 * scale
     if self.max_width_2 and width_2 > self.max_width_2:
       width_2 = self.max_width_2
+    if self.min_width_2 and width_2 < self.min_width_2:
+      width_2 = self.min_width_2
 
     height_2 = self.height_2 * scale
     if self.max_height_2 and height_2 > self.max_height_2:
       height_2 = self.max_height_2
+    if self.min_height_2 and height_2 < self.min_height_2:
+      height_2 = self.min_height_2
 
     if self.displace:
       ecenter += self.displace * enormal

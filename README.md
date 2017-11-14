@@ -125,3 +125,9 @@ A honeycomb torus thingy, but using the proportional scale option:
 Demo of the "Edges without poles" feature:
 
 ![Screenshot](documentation/wire_skin_demo_layer8.png?raw=true "Screenshot")
+
+## 3D Printing on Shapeways
+
+I primarily use wire_skin to create objects for 3D printing (on Shapeways). I tag my models with the keyword `wire_skin`. If you also use Shapeways to print models made with wire_skin, feel free to use this tag -- I'd be very interested to see what you make!
+
+https://www.shapeways.com/marketplace?q=wire_skin

@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
 long_description = '''
-===========================================
+=======================================================================
 wire_skin: construct a simple skin around a wire frame mesh in Blender.
-===========================================
+=======================================================================
 
 Please visit the Github repository for documentation:
 

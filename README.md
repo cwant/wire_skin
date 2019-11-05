@@ -14,6 +14,20 @@ Non-ASCII version:
 
 ![Screenshot](documentation/wire_skin_demo1.png?raw=true "Screenshot")
 
+## Installation
+
+This software works with Blender 2.8 and earlier versions too.
+
+Check out the repository and look in the demo directory.
+
+This software may also be installed via pip:
+
+python3 -m pip install wire_skin
+
+or
+
+pip3 install wire_skin
+
 ## Motivation
 Blender has a skin modifier that does great things for a lot of meshes. It doesn't seem to do the right thing for some of the sorts of meshes I want 3D printed (usually the caps where the vertices are have an asymmetry that is displeasing to me). The meshes I am trying to create are typically geometric cages for presenting other 3D objects.
 
